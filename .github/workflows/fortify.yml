@@ -28,7 +28,7 @@ jobs:
       contents: read
       security-events: write
     env:
-      App-Version: 'IWA:java'
+      App-Version: 'javaWebApp:Sample'
 
     steps:
       # Check out source code
