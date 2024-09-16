@@ -112,18 +112,8 @@ jobs:
       - name: Espera Scan Fortify Acabar  
         run: fcli sc-sast scan wait-for --any-ssc-state PROCESS_COMPLETE --timeout 2h ::job::jobToken --store sscArtifactId
       
-      # Para Demo
-      #- name: Recuperação do Ultimo Artefacto Scaneado
-        # run: fcli ssc artifact download ::sscArtifactId -f=app.fpr
-        # run: fcli ssc appversion download-state --include-sources --file=app.fpr ${{ env.App-Version  }}
-
-      - name: Consulta ID do Ultimo Artefacto
-        run: fcli ssc artifact list --appversion ${{ env.App-Version  }} --query "['scanTypes'].contains('SCA')" --output 'expr={id}\n' > out.txt
       - name: Recuperação do Ultimo Artefacto Scaneado
-        run: |
-         aid=head -1 out.txt
-         echo $aid
-         fcli ssc artifact download $aid -f='app.fpr'
+        run: fcli ssc appversion download-state --include-sources --file=app.fpr ${{ env.App-Version  }}
 
       - name: Arquivar FPR
         if: always()
