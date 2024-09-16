@@ -16,7 +16,7 @@
 #
 ################################################################################################################################################
 
-name: SonarQube + Dependency Track + Debricked + Fortify + Mobb
+name: Debricked + Fortify + Mobb
 
 # Gatilho de Disparo
 on: [push]
@@ -61,69 +61,45 @@ jobs:
           java -version
           fcli -V
           debricked -v
+     # Loga no SSC/SC-SAST
       - name: Login Fortify SSC/SC-SAST Controller  
         run: |
           fcli ssc session login --url=${{ secrets.SSC_URL }} --ci-token=${{ secrets.SSC_TOKEN }}
           fcli sc-sast session login --client-auth-token=${{ secrets.CLIENT_AUTH_TOKEN }} --ssc-url=${{ secrets.SSC_URL }} --ssc-ci-token=${{ secrets.SSC_TOKEN }}
-          
-      # Sonarqube
-      #- name: Cache SonarQube packages
-      #  uses: actions/cache@v1
-      #  with:
-      #    path: ~/.sonar/cache
-      #    key: ${{ runner.os }}-sonar
-      #    restore-keys: ${{ runner.os }}-sonar
-          
-       # Mvn    
-      #- name: Cache Maven packages
-      #  uses: actions/cache@v1
-      #  with:
-      #    path: ~/.m2
-      #    key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-      #    restore-keys: ${{ runner.os }}-m2
-          
-       # Build   
-      #- name: Build and analyze
-      #  env:
-      #    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #    SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      #  run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IWA-Java -Dsonar.projectName='IWA-Java'
-
+      
+      # Loga no SSC/SC-SAST
       - name: Preparação do Pacote Fortify  
-        run: scancentral package --build-tool none -o APP.zip
+        run: scancentral package --build-tool msbuild -o APP.zip
       - name: Envio Fortify  
         run: fcli sc-sast scan start --package-file=APP.zip --sensor-version=24.2 --publish-to ${{ env.App-Version  }} --ssc-ci-token=${{ secrets.SSC_TOKEN }} --store job:jobToken
-        
-        # Dependency Track - Upload SBOM
-      #- uses: DependencyTrack/gh-upload-sbom@v3.0.0
-      #  with:
-      #    serverHostname: 'fortify-demo-lab-utils.keeggo.com'
-      #    apiKey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-      #    projectName: 'IWA'
-      #    projectVersion: 'java'
-      #    bomFilename: "./target/bom.xml"
-      #    autoCreate: true
-
-      #- name: Debricked Scan
-      #  run: debricked scan -t ${{ secrets.DEBRICKED_TOKEN }} -r=${{ env.App-Version  }} --commit=${{ env.GITHUB_RUN_ID }}
-      #- name: Importa os Resultados Debricked no SSC  
-      #  run: fcli ssc artifact import-debricked -t ${{ secrets.DEBRICKED_TOKEN }} --av=${{ env.App-Version  }} -r=${{ env.App-Version  }} --branch=$GITHUB_REF_NAME
-    
-      - name: Espera Scan Fortify Acabar  
-        run: fcli sc-sast scan wait-for --any-ssc-state PROCESS_COMPLETE --timeout 2h ::job::jobToken --store sscArtifactId
       
+      # Debricked
+      - name: Debricked Scan
+        run: debricked scan -t ${{ secrets.DEBRICKED_TOKEN }} -r=${{ env.App-Version  }} --commit=${{ env.GITHUB_RUN_ID }}
+      - name: Importa os Resultados Debricked no SSC  
+        run: fcli ssc artifact import-debricked -t ${{ secrets.DEBRICKED_TOKEN }} --av=${{ env.App-Version  }} -r=${{ env.App-Version  }} --branch=$GITHUB_REF_NAME
+      
+      # Espera Scan
+      - name: Espera Scan Fortify Acabar  
+        run: fcli sc-sast scan wait-for --any-ssc-state PROCESS_COMPLETE --timeout 2h ::job::jobToken
+      
+      - name: Consulta ID do Ultimo Artefato
+        run: fcli ssc artifact list --appversion ${{ env.App-Version  }} --query "['scanTypes'].contains('SCA')" --output 'expr={id}\n' > out.txt
       - name: Recuperação do Ultimo Artefacto Scaneado
-        run: fcli ssc appversion download-state --include-sources --file=app.fpr ${{ env.App-Version  }}
-
-      - name: Arquivar FPR
+        run: |
+         $var = $(head -n 1 out.txt)
+         fcli ssc artifact download $var -f='app.fpr'
+         
+      # Mobb Upload FPR
+      - name: Upload FPR => Mobb
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: fpr
           path: app.fpr
-        
-      # Mobb Fixer
-      - name: Run Mobb on the findings and get fixes
+          
+     # Mobb Fixer
+      - name: Executa Mobb Fixer
         if: always()
         uses: mobb-dev/action@v1
         with:
