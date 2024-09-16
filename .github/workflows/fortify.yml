@@ -75,11 +75,11 @@ jobs:
         run: fcli sc-sast scan start --package-file=$GITHUB_REF_NAME.zip --sensor-version=24.2 --publish-to ${{ env.App-Version  }} --ssc-ci-token=${{ secrets.SSC_TOKEN }} --store job:jobToken
       
       # Debricked
-      - name: Debricked Scan
-        run: debricked scan -t ${{ secrets.DEBRICKED_TOKEN }} -r=${{ env.App-Version  }} --commit=${{ env.GITHUB_RUN_ID }}
+      #- name: Debricked Scan
+      #  run: debricked scan -t ${{ secrets.DEBRICKED_TOKEN }} -r=${{ env.App-Version  }} --commit=${{ env.GITHUB_RUN_ID }}
         
-      - name: Importa os Resultados Debricked no SSC  
-        run: fcli ssc artifact import-debricked -t ${{ secrets.DEBRICKED_TOKEN }} --av=${{ env.App-Version  }} -r=${{ env.App-Version  }} --branch=$GITHUB_REF_NAME
+      #- name: Importa os Resultados Debricked no SSC  
+      #  run: fcli ssc artifact import-debricked -t ${{ secrets.DEBRICKED_TOKEN }} --av=${{ env.App-Version  }} -r=${{ env.App-Version  }} --branch=$GITHUB_REF_NAME
       
       # Espera Scan
       - name: Espera Scan Fortify Acabar  
