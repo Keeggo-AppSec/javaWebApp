@@ -69,13 +69,15 @@ jobs:
       
       # Loga no SSC/SC-SAST
       - name: Preparação do Pacote Fortify  
-        run: scancentral package --build-tool msbuild -o APP.zip
+        run: scancentral package --build-tool none -o $GITHUB_REF_NAME.zip
+        
       - name: Envio Fortify  
-        run: fcli sc-sast scan start --package-file=APP.zip --sensor-version=24.2 --publish-to ${{ env.App-Version  }} --ssc-ci-token=${{ secrets.SSC_TOKEN }} --store job:jobToken
+        run: fcli sc-sast scan start --package-file=$GITHUB_REF_NAME.zip --sensor-version=24.2 --publish-to ${{ env.App-Version  }} --ssc-ci-token=${{ secrets.SSC_TOKEN }} --store job:jobToken
       
       # Debricked
       - name: Debricked Scan
         run: debricked scan -t ${{ secrets.DEBRICKED_TOKEN }} -r=${{ env.App-Version  }} --commit=${{ env.GITHUB_RUN_ID }}
+        
       - name: Importa os Resultados Debricked no SSC  
         run: fcli ssc artifact import-debricked -t ${{ secrets.DEBRICKED_TOKEN }} --av=${{ env.App-Version  }} -r=${{ env.App-Version  }} --branch=$GITHUB_REF_NAME
       
@@ -85,6 +87,7 @@ jobs:
       
       - name: Consulta ID do Ultimo Artefato
         run: fcli ssc artifact list --appversion ${{ env.App-Version  }} --query "['scanTypes'].contains('SCA')" --output 'expr={id}\n' > out.txt
+        
       - name: Recuperação do Ultimo Artefacto Scaneado
         run: |
          $var = $(head -n 1 out.txt)
