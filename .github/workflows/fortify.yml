@@ -121,8 +121,9 @@ jobs:
         run: fcli ssc artifact list --appversion ${{ env.App-Version  }} --query "['scanTypes'].contains('SCA')" --output 'expr={id}\n' > out.txt
       - name: Recuperação do Ultimo Artefacto Scaneado
         run: |
-         $ARTIFACTID = head -1 out.txt
-         fcli ssc artifact download "$ARTIFACTID" -f='app.fpr'
+         aid=head -1 out.txt
+         echo $aid
+         fcli ssc artifact download $aid -f='app.fpr'
 
       - name: Arquivar FPR
         if: always()
