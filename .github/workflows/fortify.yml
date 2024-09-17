@@ -89,9 +89,7 @@ jobs:
         run: fcli ssc artifact list --appversion ${{ env.App-Version  }} --query "['scanTypes'].contains('SCA')" --output 'expr={id}\n' > out.txt
         
       - name: Recuperação do Ultimo Artefacto Scaneado
-        run: |
-         $var = $(head -n 1 out.txt)
-         fcli ssc artifact download $var -f='app.fpr'
+        run: fcli ssc artifact download $(head -n 1 out.txt) -f='app.fpr'
          
       # Mobb Upload FPR
       - name: Upload FPR => Mobb
